@@ -6,3 +6,4 @@ di_5_hang
 di_6_hangHello, Python!
 Hello, Python!
 Hello, Python!
+你好
