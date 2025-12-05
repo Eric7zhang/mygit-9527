@@ -38,4 +38,5 @@ printfileline("filename.txt",9)
 """
 print("hello")
 print("world")  
+print("你好，世界")
 
