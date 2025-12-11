@@ -171,3 +171,47 @@ for x in k8s-node1 k8s-node2 client;do scp ~/.kube/* $x:~/.kube/;done
 for client in $CLIENTS;do ssh $client "echo 'source <(kubeadm completion bash)' >> ~/.bash_profile";done
 for client in $CLIENTS;do ssh $client "echo 'source <(kubectl completion bash)' >> ~/.bash_profile";done
 source ~/.bash_profile
+
+
+
+
+sudo kubeadm certs renew all #通过kubeadm工具来更新证书
+[renew] Reading configuration from the cluster...
+[renew] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+
+certificate embedded in the kubeconfig file for the admin to use and for kubeadm itself renewed
+certificate for serving the Kubernetes API renewed
+certificate the apiserver uses to access etcd renewed
+certificate for the API server to connect to kubelet renewed
+certificate embedded in the kubeconfig file for the controller manager to use renewed
+certificate for liveness probes to healthcheck etcd renewed
+certificate for etcd nodes to communicate with each other renewed
+certificate for serving etcd renewed
+certificate for the front proxy client renewed
+certificate embedded in the kubeconfig file for the scheduler manager to use renewed
+
+Done renewing certificates. You must restart the kube-apiserver, kube-controller-manager, kube-scheduler and etcd, so that they can use the new certificates.
+
+
+
+
+sudo kubeadm certs check-expiration   #对于ca、etcd-ca、front-proxy-ca等根证书，建议每隔几年检查一次证书有效期？
+[check-expiration] Reading configuration from the cluster...
+[check-expiration] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+
+CERTIFICATE                EXPIRES                  RESIDUAL TIME   CERTIFICATE AUTHORITY   EXTERNALLY MANAGED
+admin.conf                 Dec 11, 2026 08:35 UTC   364d                                    no      
+apiserver                  Dec 11, 2026 08:35 UTC   364d            ca                      no      
+apiserver-etcd-client      Dec 11, 2026 08:35 UTC   364d            etcd-ca                 no      
+apiserver-kubelet-client   Dec 11, 2026 08:35 UTC   364d            ca                      no      
+controller-manager.conf    Dec 11, 2026 08:35 UTC   364d                                    no      
+etcd-healthcheck-client    Dec 11, 2026 08:35 UTC   364d            etcd-ca                 no      
+etcd-peer                  Dec 11, 2026 08:35 UTC   364d            etcd-ca                 no      
+etcd-server                Dec 11, 2026 08:35 UTC   364d            etcd-ca                 no      
+front-proxy-client         Dec 11, 2026 08:35 UTC   364d            front-proxy-ca          no      
+scheduler.conf             Dec 11, 2026 08:35 UTC   364d                                    no      
+
+CERTIFICATE AUTHORITY   EXPIRES                  RESIDUAL TIME   EXTERNALLY MANAGED
+ca                      Dec 08, 2035 03:06 UTC   9y              no      
+etcd-ca                 Dec 08, 2035 03:06 UTC   9y              no      
+front-proxy-ca          Dec 08, 2035 03:06 UTC   9y              no      
