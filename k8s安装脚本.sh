@@ -74,11 +74,9 @@ ssh-keygen -N '' -f ~/.ssh/id_rsa
 for client in $CLIENTS;do ssh-copy-id $client;done
 
 source <(kubeadm completion bash)
-sudo kubeadm init --kubernetes-version=v1.22.0 --apiserver-advertise-address=192.168.126.100 \
---image-repository=registry.aliyuncs.com/google_containers --pod-network-cidr=10.244.0.0/16 --service-cidr=10.96.0.0/12
 
 sudo kubeadm init --kubernetes-version=v1.22.0 --apiserver-advertise-address=192.168.126.100 \
-> --image-repository=registry.aliyuncs.com/google_containers --pod-network-cidr=10.244.0.0/16 --service-cidr=10.96.0.0/12
+ --image-repository=registry.aliyuncs.com/google_containers --pod-network-cidr=10.244.0.0/16 --service-cidr=10.96.0.0/12
 [init] Using Kubernetes version: v1.22.0
 [preflight] Running pre-flight checks
         [WARNING SystemVerification]: this Docker version is not on the list of validated versions: 24.0.2. Latest validated version: 20.10
@@ -193,9 +191,7 @@ certificate embedded in the kubeconfig file for the scheduler manager to use ren
 Done renewing certificates. You must restart the kube-apiserver, kube-controller-manager, kube-scheduler and etcd, so that they can use the new certificates.
 
 
-
-
-sudo kubeadm certs check-expiration   #对于ca、etcd-ca、front-proxy-ca等根证书，建议每隔几年检查一次证书有效期？
+sudo kubeadm certs check-expiration   #对于ca、etcd-ca、front-proxy-ca等根证书，sudo kubeadm certs renew-ca  来更新根证书
 [check-expiration] Reading configuration from the cluster...
 [check-expiration] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
 
@@ -215,3 +211,14 @@ CERTIFICATE AUTHORITY   EXPIRES                  RESIDUAL TIME   EXTERNALLY MANA
 ca                      Dec 08, 2035 03:06 UTC   9y              no      
 etcd-ca                 Dec 08, 2035 03:06 UTC   9y              no      
 front-proxy-ca          Dec 08, 2035 03:06 UTC   9y              no      
+
+kubeadm config images list #查看当前kubeadm使用的镜像列表
+W1211 09:05:36.225382   25467 version.go:103] could not fetch a Kubernetes version from the internet: unable to get URL "https://dl.k8s.io/release/stable-1.txt": Get "https://cdn.dl.k8s.io/release/stable-1.txt": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+W1211 09:05:36.225516   25467 version.go:104] falling back to the local client version: v1.22.0
+k8s.gcr.io/kube-apiserver:v1.22.0
+k8s.gcr.io/kube-controller-manager:v1.22.0
+k8s.gcr.io/kube-scheduler:v1.22.0
+k8s.gcr.io/kube-proxy:v1.22.0
+k8s.gcr.io/pause:3.5
+k8s.gcr.io/etcd:3.5.0-0
+k8s.gcr.io/coredns/coredns:v1.8.4
