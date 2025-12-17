@@ -222,3 +222,160 @@ k8s.gcr.io/kube-proxy:v1.22.0
 k8s.gcr.io/pause:3.5
 k8s.gcr.io/etcd:3.5.0-0
 k8s.gcr.io/coredns/coredns:v1.8.4
+
+
+
+#1,对现有的集群增加一个node节点,在master节点上操作；
+student@k8s-master:~$ sudo kubeadm token create --print-join-command --ttl 0
+kubeadm join 192.168.126.100:6443 --token y9lqb9.ou7w9aa9rv8vayj9 --discovery-token-ca-cert-hash sha256:9fd7b2f70a1ff5d6697c8991d8330d8bb25c4c5e135f26c1862830a82c3ebaf2 
+#在node3节点上操作
+student@k8s-node3:~$ sudo kubeadm join 192.168.126.100:6443 --token y9lqb9.ou7w9aa9rv8vayj9 --discovery-token-ca-cert-hash sha256:9fd7b2f70a1ff5d6697c8991d8330
+d8bb25c4c5e135f26c1862830a82c3ebaf2 
+[preflight] Running pre-flight checks
+        [WARNING SystemVerification]: this Docker version is not on the list of validated versions: 24.0.2. Latest validated version: 20.10
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+####知识库###
+#可能会出现node3节点长时间NotReady的情况；
+student@k8s-master:~$ kubectl get nodes
+NAME                         STATUS     ROLES                  AGE    VERSION
+k8s-master.lab.example.com   Ready      control-plane,master   2d3h   v1.22.0
+k8s-node1.lab.example.com    Ready      <none>                 2d3h   v1.22.0
+k8s-node2.lab.example.com    Ready      <none>                 2d3h   v1.22.0
+k8s-node3.lab.example.com    NotReady   <none>                 14s    v1.22.0
+#检查目录/etc/cni/net.d是否存在；
+sudo mkdir -p /etc/cni/net.d
+
+
+#2,删除node3节点
+student@k8s-master:~$ kubectl get nodes
+NAME                         STATUS   ROLES                  AGE    VERSION
+k8s-master.lab.example.com   Ready    control-plane,master   2d5h   v1.22.0
+k8s-node1.lab.example.com    Ready    <none>                 2d5h   v1.22.0
+k8s-node2.lab.example.com    Ready    <none>                 2d5h   v1.22.0
+k8s-node3.lab.example.com    Ready    <none>                 121m   v1.22.0
+
+student@k8s-master:~$ kubectl cordon k8s-node3.lab.example.com   #cordon就是打标签，告诉集群这个node不参加调度
+node/k8s-node3.lab.example.com cordoned。  
+
+student@k8s-master:~$ kubectl get nodes|grep node3
+k8s-node3.lab.example.com    Ready,SchedulingDisabled   <none>                 138m   v1.22.0
+
+student@k8s-master:~$ kubectl drain k8s-node3.lab.example.com   #drain就是把这个节点上的pod都驱逐掉
+node/k8s-node3.lab.example.com already cordoned
+DEPRECATED WARNING: Aborting the drain command in a list of nodes will be deprecated in v1.23.
+The new behavior will make the drain command go through all nodes even if one or more nodes failed during the drain.
+For now, users can try such experience via: --ignore-errors
+error: unable to drain node "k8s-node3.lab.example.com", aborting command...
+
+There are pending nodes to be drained:
+ k8s-node3.lab.example.com
+error: cannot delete DaemonSet-managed Pods (use --ignore-daemonsets to ignore): kube-system/calico-node-g97fc, kube-system/kube-proxy-chdm8
+
+student@k8s-master:~$ kubectl drain k8s-node3.lab.example.com --ignore-daemonsets #忽略DaemonSet管理的Pod
+node/k8s-node3.lab.example.com already cordoned
+WARNING: ignoring DaemonSet-managed Pods: kube-system/calico-node-g97fc, kube-system/kube-proxy-chdm8
+node/k8s-node3.lab.example.com drained
+
+
+student@k8s-node3:~$ sudo kubeadm reset -f 
+[preflight] Running pre-flight checks
+W1212 09:18:54.296076   84957 removeetcdmember.go:80] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] No etcd config found. Assuming external etcd
+[reset] Please, manually reset etcd to prevent further issues
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+[reset] Deleting contents of config directories: [/etc/kubernetes/manifests /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+[reset] Deleting contents of stateful directories: [/var/lib/kubelet /var/lib/dockershim /var/run/kubernetes /var/lib/cni]
+
+The reset process does not clean CNI configuration. To do so, you must remove /etc/cni/net.d
+
+The reset process does not reset or clean up iptables rules or IPVS tables.
+If you wish to reset iptables, you must do so manually by using the "iptables" command.
+
+If your cluster was setup to utilize IPVS, run ipvsadm --clear (or similar)
+to reset your system's IPVS tables.
+
+The reset process does not clean your kubeconfig files and you must remove them manually.
+Please, check the contents of the $HOME/.kube/config file.
+
+
+student@k8s-node3:~$ sudo iptables -F && sudo iptables -t nat -F && sudo iptables -t mangle -F && sudo iptables -X
+
+student@k8s-master:~$ kubectl delete nodes k8s-node3.lab.example.com 
+node "k8s-node3.lab.example.com" deleted
+
+
+
+
+#3升级kubeadm集群
+student@k8s-master:~$ sudo kubeadm upgrade plan
+[upgrade/config] Making sure the configuration is correct:
+[upgrade/config] Reading configuration from the cluster...
+[upgrade/config] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[preflight] Running pre-flight checks.
+[upgrade] Running cluster health checks
+[upgrade] Fetching available versions to upgrade to
+[upgrade/versions] Cluster version: v1.22.0
+[upgrade/versions] kubeadm version: v1.22.0
+I1216 07:56:55.624940  100002 version.go:255] remote version is much newer: v1.34.3; falling back to: stable-1.22
+[upgrade/versions] Target version: v1.22.17
+[upgrade/versions] Latest version in the v1.22 series: v1.22.17
+
+Components that must be upgraded manually after you have upgraded the control plane with 'kubeadm upgrade apply':
+COMPONENT   CURRENT       TARGET
+kubelet     3 x v1.22.0   v1.22.17
+
+Upgrade to the latest version in the v1.22 series:
+
+COMPONENT                 CURRENT   TARGET
+kube-apiserver            v1.22.0   v1.22.17
+kube-controller-manager   v1.22.0   v1.22.17
+kube-scheduler            v1.22.0   v1.22.17
+kube-proxy                v1.22.0   v1.22.17
+CoreDNS                   v1.8.4    v1.8.4
+etcd                      3.5.0-0   3.5.0-0
+
+You can now apply the upgrade by executing the following command:
+
+        kubeadm upgrade apply v1.22.17
+
+Note: Before you can perform this upgrade, you have to update kubeadm to v1.22.17.
+
+_____________________________________________________________________
+
+
+The table below shows the current state of component configs as understood by this version of kubeadm.
+Configs that have a "yes" mark in the "MANUAL UPGRADE REQUIRED" column require manual config upgrade or
+resetting to kubeadm defaults before a successful upgrade can be performed. The version to manually
+upgrade to is denoted in the "PREFERRED VERSION" column.
+
+API GROUP                 CURRENT VERSION   PREFERRED VERSION   MANUAL UPGRADE REQUIRED
+kubeproxy.config.k8s.io   v1alpha1          v1alpha1            no
+kubelet.config.k8s.io     v1beta1           v1beta1             no
+_____________________________________________________________________
+
+
+#检查一下可以升级的版本
+student@k8s-master:~$ apt-cache madison kubeadm
+   kubeadm |  1.28.2-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm |  1.28.1-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm |  1.28.0-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm |  1.27.6-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm |  1.27.5-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm |  1.27.4-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+
+#开始升级
+sudo apt-get install kubeadm=1.22.4-00 kubelet=1.22.4-00 kubectl=1.22.4-00 -y
+
