@@ -17,7 +17,7 @@ redis-server \
 docker run -d \
 --name redis2 \
 --network redis-cluster-net \
--p 16380:6380 -p 26380:26380 \
+-p 16380:6379 -p 26380:26379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
 ubuntu/redis:6.0-22.04_edge \
 redis-server \
@@ -31,7 +31,7 @@ redis-server \
 docker run -d \
 --name redis3 \
 --network redis-cluster-net \
--p 16381:6381 -p 26381:26381 \
+-p 16381:6379 -p 26381:26379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
 ubuntu/redis:6.0-22.04_edge \
 redis-server \
@@ -45,7 +45,7 @@ redis-server \
 docker run -d \
 --name redis4 \
 --network redis-cluster-net \
--p 16382:6382 -p 26382:26382 \
+-p 16382:6379 -p 26382:26379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
 ubuntu/redis:6.0-22.04_edge \
 redis-server \
@@ -59,7 +59,7 @@ redis-server \
 docker run -d \
 --name redis5 \
 --network redis-cluster-net \
--p 16383:6383 -p 26383:26383 \
+-p 16383:6379 -p 26383:26379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
 ubuntu/redis:6.0-22.04_edge \
 redis-server \
@@ -73,7 +73,7 @@ redis-server \
 docker run -d \
 --name redis6 \
 --network redis-cluster-net \
--p 16384:6384 -p 26384:26384 \
+-p 16384:6379 -p 26384:26379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
 ubuntu/redis:6.0-22.04_edge \
 redis-server \
