@@ -1,9 +1,8 @@
-"""
 def print_specific_line(file_path, line_number):
     try:
         with open(file_path, "r") as file:
             current_line = 0
-            while True:
+            while True: 
                 line = file.readline()  # 逐行读取
                 if not line:  # 如果读到文件末尾
                     break
@@ -35,5 +34,5 @@ def printfileline(filename,linenumber):
     except FileNotFoundError:
         print(f"文件{filename}未找到")
 printfileline("filename.txt",9)
-"""
+
 
