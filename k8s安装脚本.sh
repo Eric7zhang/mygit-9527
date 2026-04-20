@@ -24,7 +24,7 @@ root@k8s:~# sysctl --system
 
 
 4、关闭交换内存：
- swapoff -a
+ :swapoff -a
  sed -ir 's/.*swap/#&/g' /etc/fstab
  rm -Rf /swap.img
  free -m
@@ -73,17 +73,43 @@ apt-cache madison kubelet
 apt-get install kubelet=1.22.0-00 kubeadm=1.22.0-00 kubectl=1.22.0-00 -y
 systemctl enable kubelet
 
+#设置普通用户k8s无密码提权
+echo "student ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
 #封装模版
 history -c
 init 0
 
 
+#client节点操作
+sudo hostnamectl set-hostname client.lab.example.com
+sudo sed -i 's/66/99/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+init 0
 
-#设置普通用户k8s无密码提权
-echo "student ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+#master节点操作
+sudo hostnamectl set-hostname k8s-master.lab.example.com
+sudo sed -i 's/66/100/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+init 0
+
+#node1节点操作
+sudo hostnamectl set-hostname k8s-node1.lab.example.com
+sudo sed -i 's/66/101/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+
+#node2节点操作
+sudo hostnamectl set-hostname k8s-node2.lab.example.com
+sudo sed -i 's/66/102/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+
+#node3节点操作
+sudo hostnamectl set-hostname k8s-node3.lab.example.com
+sudo sed -i 's/66/103/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
 
 
-master操作
+#master操作
 export CLIENTS="k8s-master k8s-node1 k8s-node2 client"
 export NODES="k8s-master k8s-node1 k8s-node2"
 export WORKERS="k8s-node1 k8s-node2"
