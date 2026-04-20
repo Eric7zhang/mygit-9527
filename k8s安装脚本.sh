@@ -24,10 +24,10 @@ root@k8s:~# sysctl --system
 
 
 4、关闭交换内存：
-root@k8s:~# swapoff -a
-root@k8s:~# sed -ir 's/.*swap/#&/g' /etc/fstab
-root@k8s:~# rm -Rf /swap.img
-root@k8s:~# free -m
+ swapoff -a
+ sed -ir 's/.*swap/#&/g' /etc/fstab
+ rm -Rf /swap.img
+ free -m
 
 安装配置 Docker runtime： （相关文档：https://docs.docker.com/engine/install/ubuntu/
 https://kubernetes.io/docs/setup/production-environment/container-runtimes/）
@@ -35,14 +35,17 @@ https://kubernetes.io/docs/setup/production-environment/container-runtimes/）
 root@k8s:~# apt-get remove docker docker-engine docker.io containerd runc -y
 root@k8s:~# apt-get install ca-certificates curl gnupg lsb-release -y
 root@k8s:~# curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-root@k8s:~# echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
 https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 root@k8s:~# apt-get update
 
-apt-cache madison docker-ce
 
+#选择docker版本并安装
+apt-cache madison docker-ce
 apt-get install docker-ce -y 
 
+
+#创建并编辑dockr配置文件
 cat > /etc/docker/daemon.json << EOF
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
@@ -50,6 +53,7 @@ cat > /etc/docker/daemon.json << EOF
 }
 EOF
 
+#解决 Ubuntu 或 Debian 操作系统下 docker swap limit 提示：
 sed -i 's/^GRUB_CMDLINE_LINUX=".*/GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"/' /etc/default/grub
 update-grub
 
@@ -59,10 +63,23 @@ root@k8s:~# systemctl restart docker
 root@k8s:~# docker info
 
 
+#添加ubuntu阿里云kubernetes软件仓库
 curl -s https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | sudo apt-key add -
 echo "deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main" >>/etc/apt/sources.list.d/kubernetes.list
+apt-get update
+
+#安装kubeadm、kubelet软件包
+apt-cache madison kubelet
+apt-get install kubelet=1.22.0-00 kubeadm=1.22.0-00 kubectl=1.22.0-00 -y
 systemctl enable kubelet
 
+#封装模版
+history -c
+init 0
+
+
+
+#设置普通用户k8s无密码提权
 echo "student ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 
