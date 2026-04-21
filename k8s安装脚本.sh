@@ -193,10 +193,15 @@ Then you can join any number of worker nodes by running the following on each as
 kubeadm join 192.168.126.100:6443 --token 0pgu2w.xgvq1285wesno9xh \
         --discovery-token-ca-cert-hash sha256:9fd7b2f70a1ff5d6697c8991d8330d8bb25c4c5e135f26c1862830a82c3ebaf2 
 
+#kubeadm join 192.168.126.100:6443 --token kziqud.l4fzx42grebla4q4 \
+#        --discovery-token-ca-cert-hash sha256:409d864200b068c45c64c2908061f2d82d36e0678990ceb00c595c74f45d19f5 
+
+
+
 
 #根据提示，在各个节点执行加入集群命令
-for worker in $WORKERS;do ssh $worker sudo kubeadm join 192.168.126.100:6443 --token 0pgu2w.xgvq1285wesno9xh \
---discovery-token-ca-cert-hash sha256:9fd7b2f70a1ff5d6697c8991d8330d8bb25c4c5e135f26c1862830a82c3ebaf2;done
+for worker in $WORKERS;do ssh $worker sudo kubeadm join 192.168.126.100:6443 --token kziqud.l4fzx42grebla4q4 \
+--discovery-token-ca-cert-hash sha256:409d864200b068c45c64c2908061f2d82d36e0678990ceb00c595c74f45d19f5;done
 
 
 #master节点执行
