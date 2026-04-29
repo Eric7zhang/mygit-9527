@@ -220,6 +220,73 @@ source ~/.bash_profile
 
 
 
+#搭建完k8s后，nodes集群状态有可能是NotReady的状态
+k8s@k8s-master:~$ kubectl get nodes
+NAME                         STATUS     ROLES                  AGE     VERSION
+k8s-master.lab.example.com   NotReady   control-plane,master   4d22h   v1.22.0
+k8s-node1.lab.example.com    NotReady   <none>                 4d22h   v1.22.0
+k8s-node2.lab.example.com    NotReady   <none>                 4d22h   v1.22.0
+k8s@k8s-master:~$ kubectl get pods -A
+NAMESPACE     NAME                                                 READY   STATUS                  RESTARTS        AGE
+kube-system   calico-kube-controllers-68d86f8988-tq8jn             0/1     Pending                 0               4d22h
+kube-system   calico-node-74b2c                                    0/1     Init:ImagePullBackOff   0               4d22h
+kube-system   calico-node-75p4s                                    0/1     Init:ImagePullBackOff   0               4d22h
+kube-system   calico-node-pnztc                                    0/1     Init:ImagePullBackOff   0               4d22h
+kube-system   coredns-7f6cbbb7b8-s98zx                             0/1     Pending                 0               4d22h
+kube-system   coredns-7f6cbbb7b8-shf5s                             0/1     Pending                 0               4d22h
+kube-system   etcd-k8s-master.lab.example.com                      1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-apiserver-k8s-master.lab.example.com            1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-controller-manager-k8s-master.lab.example.com   1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-proxy-459rh                                     1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-proxy-dmmtx                                     1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-proxy-thtrc                                     1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-scheduler-k8s-master.lab.example.com            1/1     Running                 1 (4d20h ago)   4d22h
+
+#在master节点上执行。
+curl -O https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+kubectl apply -f calico.yaml
+sudo vi /etc/containerd/config.toml
+[plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+endpoint = [
+"https://docker.m.daocloud.io",
+"https://docker.1ms.run"
+]
+systemctl restart containerd
+systemctl restart kubelet
+kubectl delete pod -n kube-system --all
+
+k8s@k8s-master:~$ kubectl get pods -A
+NAMESPACE     NAME                                                 READY   STATUS    RESTARTS      AGE
+kube-system   calico-kube-controllers-68d86f8988-7j2kb             1/1     Running   0             12m
+kube-system   calico-node-6m7cg                                    1/1     Running   0             12m
+kube-system   calico-node-hfl7x                                    1/1     Running   0             12m
+kube-system   calico-node-jxrgz                                    1/1     Running   0             12m
+kube-system   coredns-7f6cbbb7b8-9kf9s                             1/1     Running   0             12m
+kube-system   coredns-7f6cbbb7b8-lzwpd                             1/1     Running   0             12m
+kube-system   etcd-k8s-master.lab.example.com                      1/1     Running   2 (20m ago)   12m
+kube-system   kube-apiserver-k8s-master.lab.example.com            1/1     Running   2 (20m ago)   12m
+kube-system   kube-controller-manager-k8s-master.lab.example.com   1/1     Running   2 (20m ago)   12m
+kube-system   kube-proxy-gzr8n                                     1/1     Running   0             12m
+kube-system   kube-proxy-nzl8f                                     1/1     Running   0             12m
+kube-system   kube-proxy-wlt2j                                     1/1     Running   0             12m
+kube-system   kube-scheduler-k8s-master.lab.example.com            1/1     Running   2 (20m ago)   12m
+
+k8s@k8s-master:~$ kubectl get nodes
+NAME                         STATUS   ROLES                  AGE     VERSION
+k8s-master.lab.example.com   Ready    control-plane,master   4d23h   v1.22.0
+k8s-node1.lab.example.com    Ready    <none>                 4d23h   v1.22.0
+k8s-node2.lab.example.com    Ready    <none>                 4d23h   v1.22.0
+
+
+
+
+
+
+
+
+
+
+
 
 sudo kubeadm certs renew all #通过kubeadm工具来更新证书
 [renew] Reading configuration from the cluster...
@@ -270,6 +337,25 @@ k8s.gcr.io/kube-proxy:v1.22.0
 k8s.gcr.io/pause:3.5
 k8s.gcr.io/etcd:3.5.0-0
 k8s.gcr.io/coredns/coredns:v1.8.4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
