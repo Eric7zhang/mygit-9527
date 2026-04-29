@@ -278,16 +278,6 @@ k8s-node1.lab.example.com    Ready    <none>                 4d23h   v1.22.0
 k8s-node2.lab.example.com    Ready    <none>                 4d23h   v1.22.0
 
 
-
-
-
-
-
-
-
-
-
-
 sudo kubeadm certs renew all #通过kubeadm工具来更新证书
 [renew] Reading configuration from the cluster...
 [renew] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
@@ -338,28 +328,7 @@ k8s.gcr.io/pause:3.5
 k8s.gcr.io/etcd:3.5.0-0
 k8s.gcr.io/coredns/coredns:v1.8.4
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#1,对现有的集群增加一个node节点,在master节点上操作；
+#1,对现有的集群增加一个node3节点,在master节点上操作；
 student@k8s-master:~$ sudo kubeadm token create --print-join-command --ttl 0
 kubeadm join 192.168.126.100:6443 --token y9lqb9.ou7w9aa9rv8vayj9 --discovery-token-ca-cert-hash sha256:9fd7b2f70a1ff5d6697c8991d8330d8bb25c4c5e135f26c1862830a82c3ebaf2 
 #在node3节点上操作
