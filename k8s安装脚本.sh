@@ -472,13 +472,12 @@ _____________________________________________________________________
 
 #检查一下可以升级的版本
 student@k8s-master:~$ apt-cache madison kubeadm
-   kubeadm |  1.28.2-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.28.1-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.28.0-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.27.6-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.27.5-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.27.4-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+kubeadm | 1.22.17-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm | 1.22.16-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm | 1.22.15-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm | 1.22.14-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm | 1.22.13-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
 
 #开始升级
-sudo apt-get install kubeadm=1.22.4-00 kubelet=1.22.4-00 kubectl=1.22.4-00 -y
+sudo apt-get install kubeadm=1.22.17-00 kubelet=1.22.17-00 kubectl=1.22.17-00 -y
 
