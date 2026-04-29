@@ -478,6 +478,49 @@ kubeadm | 1.22.17-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xeni
    kubeadm | 1.22.14-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
    kubeadm | 1.22.13-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
 
-#开始升级
+#开始升级master 
 sudo apt-get install kubeadm=1.22.17-00 kubelet=1.22.17-00 kubectl=1.22.17-00 -y
+sudo systemctl restart kubelet
+sudo kubeadm upgrade apply v1.22.17
+[upgrade/config] Making sure the configuration is correct:
+[upgrade/config] Reading configuration from the cluster...
+[upgrade/config] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[preflight] Running pre-flight checks.
+[upgrade] Running cluster health checks
+[upgrade/version] You have chosen to change the cluster version to "v1.22.17"
+[upgrade/versions] Cluster version: v1.22.0
+[upgrade/versions] kubeadm version: v1.22.17
+[upgrade/confirm] Are you sure you want to proceed with the upgrade? [y/N]: y
+[bootstrap-token] configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+[upgrade/successful] SUCCESS! Your cluster was upgraded to "v1.22.17". Enjoy!
+
+[upgrade/kubelet] Now that your control plane is upgraded, please proceed with upgrading your kubelets if you haven't already done so.
+
+#升级node节点
+k8s@k8s-master:~$ for i in {1..3};do ssh k8s-node${i} sudo apt-get install kubelet=1.22.17-00 -y;done
+k8s@k8s-master:~$ for i in {1..3};do ssh k8s-node${i} sudo systemctl restart kubelet ;done
+k8s@k8s-master:~$ kubectl get nodes
+NAME                         STATUS   ROLES                  AGE   VERSION
+k8s-master.lab.example.com   Ready    control-plane,master   5d    v1.22.17
+k8s-node1.lab.example.com    Ready    <none>                 5d    v1.22.17
+k8s-node2.lab.example.com    Ready    <none>                 5d    v1.22.17
+k8s-node3.lab.example.com    Ready    <none>                 35m   v1.22.17
+
+#k8s版本降级操作
+#1,降级master节点
+kubectl cordon k8s-master.lab.example.com
+kubectl drain k8s-master.lab.example.com --ignore-daemonsets
+sudo apt-get install kubeadm=1.22.0-00 kubelet=1.22.0-00 kubectl=1.22.0-00 -y --allow-downgrades
+sudo kubeadm upgrade apply v1.22.0 -y
+sudo systemctl restart kubelet
+kubectl uncordon k8s-master.lab.example.com
+
+#2,降级node节点
+for i in {1..3};do ssh k8s-node${i} sudo apt-get install kubelet=1.22.0-00 -y;done
+for i in {1..3};do ssh k8s-node${i} sudo systemctl restart kubelet ;done
+
+
 
