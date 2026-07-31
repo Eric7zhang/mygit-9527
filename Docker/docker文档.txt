@@ -15,51 +15,48 @@ def hello():
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
 
-
-cat Dockerfile 
-FROM python:3.10-slim
-WORKDIR /sfm
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-EXPOSE 19201
-CMD ["python", "app.py"]
-
-
 cat requirements.txt 
 flask==2.3.0
+
+
+
+cat Dockerfile 
+#基于debin的python3.10环境，约150M
+FROM python:3.10-slim 
+#会有警告
+ENV USID 601 
+ENV USNAME=sfm
+ENV APPDIR=/${USNAME}
+#切换用户为root（默认为root）
+USER root 
+RUN mkdir /sfm/; \ 
+    groupadd -g ${USID} ${USNAME}; \
+    useradd -m -u ${USID} -g ${USNAME} -s /bin/bash ${USNAME}; 
+#指定工作目录，不存在则创建。实际效果类似cd /sfm    
+WORKDIR /sfm      
+COPY --chown=sfm:sfm ./readme.txt ${APPDIR}/README.TXT  
+COPY requirements.txt .
+COPY app.py .
+#复制当前目录下所有文件
+#COPY . .                                   
+RUN chown -R ${USNAME}:${USNAME} ${APPDIR}  
+RUN pip install -r requirements.txt         
+ENV redispasswd="C1bsfm_ACB"
+USER sfm
+ADD ./filename.txt /sfm/                  
+ADD --chown=sfm:sfm ./tarfile.tar ${APPDIR}/ 
+EXPOSE 5000                                 
+CMD ["python", "app.py"] 
+
+
 
 
 
 #构建镜像
 docker build -t zxfbj-demo:latest .
 
-[+] Building 15.0s (10/10) FINISHED                                                                                                                                                                                                                            docker:desktop-linux
- => [internal] load build definition from Dockerfile                                                                                                                                                                                                                           0.0s
- => => transferring dockerfile: 181B                                                                                                                                                                                                                                           0.0s
- => [internal] load metadata for docker.io/library/python:3.10-slim                                                                                                                                                                                                            0.4s
- => [internal] load .dockerignore                                                                                                                                                                                                                                              0.0s
- => => transferring context: 2B                                                                                                                                                                                                                                                0.0s
- => [1/5] FROM docker.io/library/python:3.10-slim@sha256:c1e4e6c01eb489c422288b2de34b0761ca316f7a2d98e2c33f47659a73ed108a                                                                                                                                                      5.4s
- => => resolve docker.io/library/python:3.10-slim@sha256:c1e4e6c01eb489c422288b2de34b0761ca316f7a2d98e2c33f47659a73ed108a                                                                                                                                                      0.0s
- => => sha256:59761324ffa24baf777953d8c6d386a99078c7b21877c050e6cb7331736d1076 13.83MB / 13.83MB                                                                                                                                                                               5.2s
- => => sha256:57bf3492848ac60149e44b169cd0c31a1fc53b7bec02e991c9b0fa71c79c4f1c 249B / 249B                                                                                                                                                                                     1.3s
- => => extracting sha256:59761324ffa24baf777953d8c6d386a99078c7b21877c050e6cb7331736d1076                                                                                                                                                                                      0.2s
- => => extracting sha256:57bf3492848ac60149e44b169cd0c31a1fc53b7bec02e991c9b0fa71c79c4f1c                                                                                                                                                                                      0.0s
- => [internal] load build context                                                                                                                                                                                                                                              0.0s
- => => transferring context: 93B                                                                                                                                                                                                                                               0.0s
- => [2/5] WORKDIR /sfm                                                                                                                                                                                                                                                         0.1s
- => [3/5] COPY requirements.txt .                                                                                                                                                                                                                                              0.0s
- => [4/5] RUN pip install -r requirements.txt                                                                                                                                                                                                                                  8.5s
- => [5/5] COPY . .                                                                                                                                                                                                                                                             0.0s
- => exporting to image                                                                                                                                                                                                                                                         0.5s
- => => exporting layers                                                                                                                                                                                                                                                        0.4s
- => => exporting manifest sha256:5dd4ac25a2fb60a7562f1a4bd87a7ed087babaff5788bf90d9f4e3ebf226d09c                                                                                                                                                                              0.0s 
- => => exporting config sha256:a94e85294aa4e741bfd6be74b26646050c95d1bb6e78f07e839c522dd5b46ad9                                                                                                                                                                                0.0s 
- => => exporting attestation manifest sha256:7e0a4a296c973bd3f6ac1e21ee93440df756fd16e56d89be8abfc6adf6e0015f                                                                                                                                                                  0.0s 
- => => exporting manifest list sha256:f5fe4aaf29de0e71d6cb7701cdceb893dcc1f46a54207c6608f99933a794fe9a                                                                                                                                                                         0.0s
- => => naming to docker.io/library/zxfbj-demo:latest                                                                                                                                                                                                                           0.0s
- => => unpacking to docker.io/library/zxfbj-demo:latest
+
+
 
 #检查创建后的镜像
 docker images
@@ -69,6 +66,10 @@ zxfbj-demo:latest   f5fe4aaf29de        229MB         50.1MB
 #启动镜像
 docker run -d -p 19201:5000 --name zxfbj-app zxfbj-demo
 6ebc3594ddd11ed323212b55faacc575a89d28346393afb9d5f2057e4cd5e3a9
+
+docker run -d -p 5001:5000 --name zxfbj-app zxfbj-demo:20260731
+ec778e3ba8af9e2de0e5cf1bcd71c82089faf5f355fce2b00d4c67e2999d5875
+
 
 #查看镜像
 docker ps -a
