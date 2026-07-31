@@ -24,10 +24,10 @@ root@k8s:~# sysctl --system
 
 
 4、关闭交换内存：
-root@k8s:~# swapoff -a
-root@k8s:~# sed -ir 's/.*swap/#&/g' /etc/fstab
-root@k8s:~# rm -Rf /swap.img
-root@k8s:~# free -m
+ :swapoff -a
+ sed -ir 's/.*swap/#&/g' /etc/fstab
+ rm -Rf /swap.img
+ free -m
 
 安装配置 Docker runtime： （相关文档：https://docs.docker.com/engine/install/ubuntu/
 https://kubernetes.io/docs/setup/production-environment/container-runtimes/）
@@ -35,14 +35,17 @@ https://kubernetes.io/docs/setup/production-environment/container-runtimes/）
 root@k8s:~# apt-get remove docker docker-engine docker.io containerd runc -y
 root@k8s:~# apt-get install ca-certificates curl gnupg lsb-release -y
 root@k8s:~# curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-root@k8s:~# echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
 https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 root@k8s:~# apt-get update
 
-apt-cache madison docker-ce
 
+#选择docker版本并安装
+apt-cache madison docker-ce
 apt-get install docker-ce -y 
 
+
+#创建并编辑dockr配置文件
 cat > /etc/docker/daemon.json << EOF
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
@@ -50,6 +53,7 @@ cat > /etc/docker/daemon.json << EOF
 }
 EOF
 
+#解决 Ubuntu 或 Debian 操作系统下 docker swap limit 提示：
 sed -i 's/^GRUB_CMDLINE_LINUX=".*/GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"/' /etc/default/grub
 update-grub
 
@@ -59,14 +63,53 @@ root@k8s:~# systemctl restart docker
 root@k8s:~# docker info
 
 
+#添加ubuntu阿里云kubernetes软件仓库
 curl -s https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | sudo apt-key add -
 echo "deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main" >>/etc/apt/sources.list.d/kubernetes.list
+apt-get update
+
+#安装kubeadm、kubelet软件包
+apt-cache madison kubelet
+apt-get install kubelet=1.22.0-00 kubeadm=1.22.0-00 kubectl=1.22.0-00 -y
 systemctl enable kubelet
 
+#设置普通用户k8s无密码提权
 echo "student ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+#封装模版
+history -c
+init 0
 
-master操作
+
+#client节点操作
+sudo hostnamectl set-hostname client.lab.example.com
+sudo sed -i 's/66/99/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+init 0
+
+#master节点操作
+sudo hostnamectl set-hostname k8s-master.lab.example.com
+sudo sed -i 's/66/100/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+init 0
+
+#node1节点操作
+sudo hostnamectl set-hostname k8s-node1.lab.example.com
+sudo sed -i 's/66/101/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+
+#node2节点操作
+sudo hostnamectl set-hostname k8s-node2.lab.example.com
+sudo sed -i 's/66/102/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+
+#node3节点操作
+sudo hostnamectl set-hostname k8s-node3.lab.example.com
+sudo sed -i 's/66/103/' /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+
+
+#master操作
 export CLIENTS="k8s-master k8s-node1 k8s-node2 client"
 export NODES="k8s-master k8s-node1 k8s-node2"
 export WORKERS="k8s-node1 k8s-node2"
@@ -150,10 +193,15 @@ Then you can join any number of worker nodes by running the following on each as
 kubeadm join 192.168.126.100:6443 --token 0pgu2w.xgvq1285wesno9xh \
         --discovery-token-ca-cert-hash sha256:9fd7b2f70a1ff5d6697c8991d8330d8bb25c4c5e135f26c1862830a82c3ebaf2 
 
+#kubeadm join 192.168.126.100:6443 --token kziqud.l4fzx42grebla4q4 \
+#        --discovery-token-ca-cert-hash sha256:409d864200b068c45c64c2908061f2d82d36e0678990ceb00c595c74f45d19f5 
+
+
+
 
 #根据提示，在各个节点执行加入集群命令
-for worker in $WORKERS;do ssh $worker sudo kubeadm join 192.168.126.100:6443 --token 0pgu2w.xgvq1285wesno9xh \
---discovery-token-ca-cert-hash sha256:9fd7b2f70a1ff5d6697c8991d8330d8bb25c4c5e135f26c1862830a82c3ebaf2;done
+for worker in $WORKERS;do ssh $worker sudo kubeadm join 192.168.126.100:6443 --token kziqud.l4fzx42grebla4q4 \
+--discovery-token-ca-cert-hash sha256:409d864200b068c45c64c2908061f2d82d36e0678990ceb00c595c74f45d19f5;done
 
 
 #master节点执行
@@ -171,6 +219,63 @@ for client in $CLIENTS;do ssh $client "echo 'source <(kubectl completion bash)' 
 source ~/.bash_profile
 
 
+
+#搭建完k8s后，nodes集群状态有可能是NotReady的状态
+k8s@k8s-master:~$ kubectl get nodes
+NAME                         STATUS     ROLES                  AGE     VERSION
+k8s-master.lab.example.com   NotReady   control-plane,master   4d22h   v1.22.0
+k8s-node1.lab.example.com    NotReady   <none>                 4d22h   v1.22.0
+k8s-node2.lab.example.com    NotReady   <none>                 4d22h   v1.22.0
+k8s@k8s-master:~$ kubectl get pods -A
+NAMESPACE     NAME                                                 READY   STATUS                  RESTARTS        AGE
+kube-system   calico-kube-controllers-68d86f8988-tq8jn             0/1     Pending                 0               4d22h
+kube-system   calico-node-74b2c                                    0/1     Init:ImagePullBackOff   0               4d22h
+kube-system   calico-node-75p4s                                    0/1     Init:ImagePullBackOff   0               4d22h
+kube-system   calico-node-pnztc                                    0/1     Init:ImagePullBackOff   0               4d22h
+kube-system   coredns-7f6cbbb7b8-s98zx                             0/1     Pending                 0               4d22h
+kube-system   coredns-7f6cbbb7b8-shf5s                             0/1     Pending                 0               4d22h
+kube-system   etcd-k8s-master.lab.example.com                      1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-apiserver-k8s-master.lab.example.com            1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-controller-manager-k8s-master.lab.example.com   1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-proxy-459rh                                     1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-proxy-dmmtx                                     1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-proxy-thtrc                                     1/1     Running                 1 (4d20h ago)   4d22h
+kube-system   kube-scheduler-k8s-master.lab.example.com            1/1     Running                 1 (4d20h ago)   4d22h
+
+#在master节点上执行。
+curl -O https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+kubectl apply -f calico.yaml
+sudo vi /etc/containerd/config.toml
+[plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+endpoint = [
+"https://docker.m.daocloud.io",
+"https://docker.1ms.run"
+]
+systemctl restart containerd
+systemctl restart kubelet
+kubectl delete pod -n kube-system --all
+
+k8s@k8s-master:~$ kubectl get pods -A
+NAMESPACE     NAME                                                 READY   STATUS    RESTARTS      AGE
+kube-system   calico-kube-controllers-68d86f8988-7j2kb             1/1     Running   0             12m
+kube-system   calico-node-6m7cg                                    1/1     Running   0             12m
+kube-system   calico-node-hfl7x                                    1/1     Running   0             12m
+kube-system   calico-node-jxrgz                                    1/1     Running   0             12m
+kube-system   coredns-7f6cbbb7b8-9kf9s                             1/1     Running   0             12m
+kube-system   coredns-7f6cbbb7b8-lzwpd                             1/1     Running   0             12m
+kube-system   etcd-k8s-master.lab.example.com                      1/1     Running   2 (20m ago)   12m
+kube-system   kube-apiserver-k8s-master.lab.example.com            1/1     Running   2 (20m ago)   12m
+kube-system   kube-controller-manager-k8s-master.lab.example.com   1/1     Running   2 (20m ago)   12m
+kube-system   kube-proxy-gzr8n                                     1/1     Running   0             12m
+kube-system   kube-proxy-nzl8f                                     1/1     Running   0             12m
+kube-system   kube-proxy-wlt2j                                     1/1     Running   0             12m
+kube-system   kube-scheduler-k8s-master.lab.example.com            1/1     Running   2 (20m ago)   12m
+
+k8s@k8s-master:~$ kubectl get nodes
+NAME                         STATUS   ROLES                  AGE     VERSION
+k8s-master.lab.example.com   Ready    control-plane,master   4d23h   v1.22.0
+k8s-node1.lab.example.com    Ready    <none>                 4d23h   v1.22.0
+k8s-node2.lab.example.com    Ready    <none>                 4d23h   v1.22.0
 
 
 sudo kubeadm certs renew all #通过kubeadm工具来更新证书
@@ -223,9 +328,7 @@ k8s.gcr.io/pause:3.5
 k8s.gcr.io/etcd:3.5.0-0
 k8s.gcr.io/coredns/coredns:v1.8.4
 
-
-
-#1,对现有的集群增加一个node节点,在master节点上操作；
+#1,对现有的集群增加一个node3节点,在master节点上操作；
 student@k8s-master:~$ sudo kubeadm token create --print-join-command --ttl 0
 kubeadm join 192.168.126.100:6443 --token y9lqb9.ou7w9aa9rv8vayj9 --discovery-token-ca-cert-hash sha256:9fd7b2f70a1ff5d6697c8991d8330d8bb25c4c5e135f26c1862830a82c3ebaf2 
 #在node3节点上操作
@@ -369,13 +472,55 @@ _____________________________________________________________________
 
 #检查一下可以升级的版本
 student@k8s-master:~$ apt-cache madison kubeadm
-   kubeadm |  1.28.2-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.28.1-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.28.0-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.27.6-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.27.5-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubeadm |  1.27.4-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+kubeadm | 1.22.17-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm | 1.22.16-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm | 1.22.15-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm | 1.22.14-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
+   kubeadm | 1.22.13-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
 
-#开始升级
-sudo apt-get install kubeadm=1.22.4-00 kubelet=1.22.4-00 kubectl=1.22.4-00 -y
+#开始升级master 
+sudo apt-get install kubeadm=1.22.17-00 kubelet=1.22.17-00 kubectl=1.22.17-00 -y
+sudo systemctl restart kubelet
+sudo kubeadm upgrade apply v1.22.17
+[upgrade/config] Making sure the configuration is correct:
+[upgrade/config] Reading configuration from the cluster...
+[upgrade/config] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[preflight] Running pre-flight checks.
+[upgrade] Running cluster health checks
+[upgrade/version] You have chosen to change the cluster version to "v1.22.17"
+[upgrade/versions] Cluster version: v1.22.0
+[upgrade/versions] kubeadm version: v1.22.17
+[upgrade/confirm] Are you sure you want to proceed with the upgrade? [y/N]: y
+[bootstrap-token] configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+[upgrade/successful] SUCCESS! Your cluster was upgraded to "v1.22.17". Enjoy!
+
+[upgrade/kubelet] Now that your control plane is upgraded, please proceed with upgrading your kubelets if you haven't already done so.
+
+#升级node节点
+k8s@k8s-master:~$ for i in {1..3};do ssh k8s-node${i} sudo apt-get install kubelet=1.22.17-00 -y;done
+k8s@k8s-master:~$ for i in {1..3};do ssh k8s-node${i} sudo systemctl restart kubelet ;done
+k8s@k8s-master:~$ kubectl get nodes
+NAME                         STATUS   ROLES                  AGE   VERSION
+k8s-master.lab.example.com   Ready    control-plane,master   5d    v1.22.17
+k8s-node1.lab.example.com    Ready    <none>                 5d    v1.22.17
+k8s-node2.lab.example.com    Ready    <none>                 5d    v1.22.17
+k8s-node3.lab.example.com    Ready    <none>                 35m   v1.22.17
+
+#k8s版本降级操作
+#1,降级master节点
+kubectl cordon k8s-master.lab.example.com
+kubectl drain k8s-master.lab.example.com --ignore-daemonsets
+sudo apt-get install kubeadm=1.22.0-00 kubelet=1.22.0-00 kubectl=1.22.0-00 -y --allow-downgrades
+sudo kubeadm upgrade apply v1.22.0 -y
+sudo systemctl restart kubelet
+kubectl uncordon k8s-master.lab.example.com
+
+#2,降级node节点
+for i in {1..3};do ssh k8s-node${i} sudo apt-get install kubelet=1.22.0-00 -y;done
+for i in {1..3};do ssh k8s-node${i} sudo systemctl restart kubelet ;done
+
+
 

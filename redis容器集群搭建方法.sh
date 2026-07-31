@@ -2,24 +2,21 @@ export REDIS_PASSWORD=C1bsfm_A
 
 docker run -d \
 --name redis1 \
---network redis-cluster-net \
--p 16379:6379 -p 26379:26379 \
+-p 16379:6379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
-ubuntu/redis:6.0-22.04_edge \
+redis:latest \
 redis-server \
 --requirepass ${REDIS_PASSWORD} \
 --masterauth ${REDIS_PASSWORD} \
 --cluster-enabled yes \
---cluster-config-file nodes.conf \
 --cluster-node-timeout 5000 \
 --appendonly yes
 
 docker run -d \
 --name redis2 \
---network redis-cluster-net \
--p 16380:6379 -p 26380:26379 \
+-p 26379:6379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
-ubuntu/redis:6.0-22.04_edge \
+redis:latest \
 redis-server \
 --requirepass ${REDIS_PASSWORD} \
 --masterauth ${REDIS_PASSWORD} \
@@ -30,10 +27,9 @@ redis-server \
 
 docker run -d \
 --name redis3 \
---network redis-cluster-net \
--p 16381:6379 -p 26381:26379 \
+-p 36379:6379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
-ubuntu/redis:6.0-22.04_edge \
+redis:latest \
 redis-server \
 --requirepass ${REDIS_PASSWORD} \
 --masterauth ${REDIS_PASSWORD} \
@@ -44,10 +40,9 @@ redis-server \
 
 docker run -d \
 --name redis4 \
---network redis-cluster-net \
--p 16382:6379 -p 26382:26379 \
+-p 46379:6379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
-ubuntu/redis:6.0-22.04_edge \
+redis:latest \
 redis-server \
 --requirepass ${REDIS_PASSWORD} \
 --masterauth ${REDIS_PASSWORD} \
@@ -56,12 +51,12 @@ redis-server \
 --cluster-node-timeout 5000 \
 --appendonly yes
 
+
 docker run -d \
 --name redis5 \
---network redis-cluster-net \
--p 16383:6379 -p 26383:26379 \
+-p 56379:6379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
-ubuntu/redis:6.0-22.04_edge \
+redis:latest \
 redis-server \
 --requirepass ${REDIS_PASSWORD} \
 --masterauth ${REDIS_PASSWORD} \
@@ -72,10 +67,9 @@ redis-server \
 
 docker run -d \
 --name redis6 \
---network redis-cluster-net \
--p 16384:6379 -p 26384:26379 \
+-p 16380:6379 \
 -e REDIS_PASSWORD=${REDIS_PASSWORD} \
-ubuntu/redis:6.0-22.04_edge \
+redis:latest \
 redis-server \
 --requirepass ${REDIS_PASSWORD} \
 --masterauth ${REDIS_PASSWORD} \
@@ -83,6 +77,7 @@ redis-server \
 --cluster-config-file nodes.conf \
 --cluster-node-timeout 5000 \
 --appendonly yes
+
 
 docker exec -it redis1 redis-cli -a C1bsfm_A
 Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
@@ -105,13 +100,14 @@ redis6 -> 172.18.0.7
 
 docker exec -it redis1 bash
 redis-cli -a ${REDIS_PASSWORD} --cluster create \
-172.18.0.2:6379 \
-172.18.0.3:6379 \
-172.18.0.4:6379 \
-172.18.0.5:6379 \
-172.18.0.6:6379 \
-172.18.0.7:6379 \
+172.17.0.2:6379 \
+172.17.0.5:6379 \
+172.17.0.4:6379 \
+172.17.0.6:6379 \
+172.17.0.7:6379 \
+172.17.0.8:6379 \
 --cluster-replicas 1
+
 Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
 >>> Performing hash slots allocation on 6 nodes...
 Master[0] -> Slots 0 - 5460
